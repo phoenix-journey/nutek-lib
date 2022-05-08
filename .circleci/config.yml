@@ -1,22 +1,18 @@
-version: '2.1'
+version: 2.1
 orbs:
   rust: circleci/rust@1.6.0
 jobs:
-  build:
+  lint_test_build:
     docker:
       - image: cimg/rust:1.60.0
     steps:
-      - checkout # check out the code in the project directory
-      # run the `echo` command
-      # - run: 
-      - run:
-          name: Run tests
-          command: cargo fix --edition 
+      - checkout
+      - run: cargo fix --edition
+      - run: rustup component add clippy
+      - run: cargo clippy
+      - run: cargo test
+      - run: cargo build  --release
 workflows:
   production:
     jobs:
-      - build
-      - rust/lint-test-build:
-          release: true
-          requires:
-            - build
+      - lint_test_build
