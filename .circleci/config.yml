@@ -4,12 +4,10 @@ orbs:
 workflows:
   production:
     jobs:
-      - fix_edition:
-        - steps:
+      if-good:
+        steps:
           - checkout # check out the code in the project directory
           - run: cargo fix --edition # run the `echo` command
-      - rust/lint-test-build:
-          release: true
-          requires:
-            - my_test_job
+          - rust/lint-test-build:
+            release: true
           
