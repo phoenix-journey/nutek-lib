@@ -51,14 +51,30 @@ pub mod network {
         return docker
     }
 
+    use std::path::Path;
+    pub fn create_working_dirs() {
+        let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
+        if !nutek {
+            fs::create_dir(format!("{}/.nutek/", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek directory");
+        }
+        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()).as_str()).is_dir();
+        if !rustscan {
+            fs::create_dir(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/rustscan directory");
+        }
+        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()).as_str()).is_dir();
+        if !nmap {
+            fs::create_dir(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/rustscan/nmap directory");
+        }
+    }
+
     async fn create_nutek_core(docker: Docker, container_name: &str) -> String {
+        create_working_dirs();
         let container_name_base = "nutek-core";
-        let name = format!("{}-{}", container_name_base, container_name);
+        let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
         let core_img = "neosb/nutek-core:latest";
-        fs::create_dir_all(format!("{}/.nutek/", home::home_dir().unwrap().display()))
-            .expect("can't create .nutek directory");
-        fs::create_dir_all(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()))
-            .expect("can't create .nutek/rustscan directory");
         let opts = 
             ContainerCreateOpts::builder(core_img)
             .name(name)
@@ -94,7 +110,7 @@ pub mod network {
     ///
     ///
     pub async fn rustscan(cmd: String) -> Result<String, Error> {
-       
+
         let command = cmd.split_ascii_whitespace();
         let mut cmd: Vec<String> = command.map(|x| x.to_string()).collect();
         
@@ -102,7 +118,7 @@ pub mod network {
         let suffix: u128;
         match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
-                suffix = n.as_millis()
+                suffix = n.as_micros()
             },
             Err(_) => panic!("SystemTime before UNIX EPOCH!"),
         };
@@ -220,6 +236,7 @@ pub mod network {
     }
 
     pub async fn open_nmap_html_report(path: String) -> Result<(), Error> {
+        create_working_dirs();
         open::that(format!("{}",
             path))
             .expect("can't open nmap scan website with report");
@@ -229,37 +246,50 @@ pub mod network {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let result = 2 + 2;
         assert_eq!(result, 4);
     }
 
     use crate::hello::hi_nutek;
-    #[test]
-    fn hello_msg() {
+    #[tokio::test]
+    async fn hello_msg() {
         eprintln!("{}", hi_nutek())
     }
 
+    use crate::network::create_working_dirs;
+    use std::fs;
+    use std::path::Path;
+    #[tokio::test]
+    async fn create_dirs() {
+        create_working_dirs();
+        let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(nutek);
+        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(rustscan);
+        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(nmap);
+    }
+
     use std::{process::Command, time::{SystemTime, self}};
-    #[test]
-    fn docker_presence() {
+    #[tokio::test]
+    async fn docker_presence() {
         Command::new("docker")
             .spawn()
             .expect("docker command failed to start");
     }
 
     use crate::network::rustscan;
-    use std::fs;
     #[tokio::test]
-    async fn rustscanscan_help() {
+    async fn rustscan_help() {
         let res = rustscan("rustscan --help".to_string());
-        let my_res = res
+        let suffix = res
         .await
         .expect("no rustscan result");
         let f = fs::read(
             format!("{}/.nutek/rustscan/scan_terminal_{}.txt",
-            home::home_dir().unwrap().display(), my_res))
+            home::home_dir().unwrap().display(), suffix))
             .expect("can't open terminal logs of rustscan");
         let txt = String::from_utf8_lossy(&f);
         txt.find("rustscan 2.1.0")

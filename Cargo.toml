@@ -15,6 +15,7 @@ docker-api = "0.8.0"
 futures = "0.3.21"
 open = "2.1.2"
 home = "0.5.3"
+uuid = { version = "1.0.0", features = ["v4"] }
 
 [lib]
 #name = "foo"           # The name of the target.
