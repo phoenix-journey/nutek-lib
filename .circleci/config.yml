@@ -21,16 +21,30 @@ jobs:
       - run: cargo clippy
       - run: cargo test
       - run: cargo build  --release
-  windows:
-    machine:
-      image: windows-server-2019-vs2019:current
+  # not available for free
+  # windows:
+  #   machine:
+  #     image: windows-server-2019-vs2019:current
+  #   steps:
+  #     - checkout
+  #     - run: curl -Uri https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
+  #     - run: .\rustup-init.exe --default-toolchain stable -y
+  #     - run: .\rustc --version
+  mac_os:
+    macos:
+      xcode: 13.3.1
     steps:
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
+      - run: docker pull neosb/nutek-core:latest
+      - run: export PATH="/root/.cargo/bin:$PATH"
       - checkout
-      - run: curl -Uri https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
-      - run: .\rustup-init.exe --default-toolchain stable -y
-      - run: .\rustc --version
+      - run: cargo fix --edition
+      - run: rustup component add clippy
+      - run: cargo clippy
+      - run: cargo test
+      - run: cargo build  --release
 workflows:
   production:
     jobs:
       # - lint_test_build
-      - windows
+      - mac_os
