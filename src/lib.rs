@@ -88,7 +88,7 @@ pub mod network {
             .attach_stdout(true)
             .attach_stderr(true)
             .attach_stdin(true)
-            .volumes([format!("{}/.nutek:/root/.nutek", home::home_dir().unwrap().display())])
+            .volumes([format!("{}/.nutek:/root/nutek", home::home_dir().unwrap().display())])
             .build();
         let d = docker.containers()
             .create(&opts)
@@ -133,7 +133,7 @@ pub mod network {
         let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
         if help_dash == None && help_dash_dash == None {
             cmd.append(&mut vec!["-oX".to_string(), 
-                format!("/root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
+                format!("/root/nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
         }
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -221,8 +221,8 @@ pub mod network {
 
     pub async fn nmap_xml_to_html(file: String, suffix: String) -> Result<String, Error> {
         if file == String::from("") && suffix != String::from("") {
-            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_result_{}.xml 
-                -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            run_cmd(format!("xsltproc /root/nutek/rustscan/nmap/scan_result_{}.xml 
+                -o /root/nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report");
         } else if file != String::from("") && suffix == String::from("") {
             let suffix: u128;
@@ -237,8 +237,8 @@ pub mod network {
                 home::home_dir().unwrap().display(),
                 suffix))
                 .expect("can't copy file to nmap folder");
-            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_{}.xml
-            -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            run_cmd(format!("xsltproc /root/nutek/rustscan/nmap/scan_{}.xml
+            -o /root/nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report from file");
         }
         let report_path = format!("{}/.nutek/rustscan/nmap/scan_{}.html",
@@ -323,7 +323,7 @@ mod tests {
         };
         let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
             --ports 80 -- -A -T4 -O 
-            -oX /root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix))
+            -oX /root/nutek/rustscan/nmap/scan_result_{}.xml", suffix))
             .await.expect("can't scan scanme.nmap.org");
     }
 
