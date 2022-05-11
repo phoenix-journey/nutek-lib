@@ -4,17 +4,19 @@ orbs:
   rust: circleci/rust@1.6.0
 jobs:
   lint_test_build:
-    docker:
-      - image: neosb/nutek-core:latest
+    machine:
+      image: ubuntu-2004:202201-02
+    # working_directory: ~/
     steps:
-      - setup_remote_docker:
-          version: 20.10.12
-          docker_layer_caching: true
-      - run: printf '%s\n' "deb https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker-ce.list
-      - run: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/docker-ce-archive-keyring.gpg
-      - run: apt update && apt -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-      # - run: apt update && apt -y install docker.io
-      - run: docker pull neosb/nutek-core:latest
+      - run: sudo apt-get update && sudo apt-get install -y ca-certificates curl gnupg lsb-release
+      - run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      - run: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+      - run: sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+      # - run: printf '%s\n' "deb https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker-ce.list
+      # - run: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/docker-ce-archive-keyring.gpg
+      # - run: apt update && apt -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+      # - run: sudo apt update && sudo apt -y install docker.io
+      # - run: docker pull neosb/nutek-core:latest
       - checkout
       - run: cargo fix --edition
       - run: rustup component add clippy

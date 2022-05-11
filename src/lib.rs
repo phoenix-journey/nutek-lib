@@ -267,7 +267,6 @@ mod tests {
     use std::path::Path;
     #[test]
     fn create_dirs() {
-        hello_msg();
         create_working_dirs();
         let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(nutek);
