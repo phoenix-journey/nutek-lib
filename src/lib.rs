@@ -1,5 +1,6 @@
 pub mod hello {
     /// This is my cat's drawing of the key
+    /// ___
     ///
     /// # Examples
     ///
@@ -10,13 +11,219 @@ pub mod hello {
     /// println!("{}", person);
     /// ```
     pub fn hi_nutek() -> &'static str {
-r#"::::    ::: :::    ::: ::::::::::: :::::::::: :::    ::: 
+        r#"::::    ::: :::    ::: ::::::::::: :::::::::: :::    ::: 
 :+:+:   :+: :+:    :+:     :+:     :+:        :+:   :+:  
 :+:+:+  +:+ +:+    +:+     +:+     +:+        +:+  +:+   
 +#+ +:+ +#+ +#+    +:+     +#+     +#++:++#   +#++:++    
 +#+  +#+#+# +#+    +#+     +#+     +#+        +#+  +#+   
 #+#   #+#+# #+#    #+#     #+#     #+#        #+#   #+#  
 ###    ####  ########      ###     ########## ###    ### "#
+    }
+}
+
+pub mod network {
+    use std::time::{SystemTime};
+    use std::{fs, time};
+    use std::io::{Error};
+    use docker_api::{Docker, Exec};
+    use docker_api::api::{ExecContainerOpts, ContainerCreateOpts};
+    use futures::{StreamExt};
+
+    // fn home_dir() -> String {
+    //     let home_buf = home::home_dir().unwrap().display();
+    //     let home = home_buf.to_string();
+    //     return format!("{}", home)
+    // }
+
+    #[cfg(unix)]
+    fn new_docker() -> docker_api::Result<Docker> {
+        Ok(Docker::unix("/var/run/docker.sock"))
+    }
+        
+    #[cfg(not(unix))]
+    fn new_docker() -> docker_api::Result<Docker> {
+        Docker::new("tcp://127.0.0.1:8080")
+    }
+
+    fn connect_to_docker_api() -> Docker {
+        let docker = new_docker()
+            .expect("no Docker!");
+        return docker
+    }
+
+    async fn create_nutek_core(docker: Docker, container_name: &str) -> String {
+        let container_name_base = "nutek-core";
+        let name = format!("{}-{}", container_name_base, container_name);
+        let core_img = "neosb/nutek-core:latest";
+        fs::create_dir_all(format!("{}/.nutek/", home::home_dir().unwrap().display()))
+            .expect("can't create .nutek directory");
+        fs::create_dir_all(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()))
+            .expect("can't create .nutek/rustscan directory");
+        let opts = 
+            ContainerCreateOpts::builder(core_img)
+            .name(name)
+            .attach_stdout(true)
+            .attach_stderr(true)
+            .attach_stdin(true)
+            .volumes([format!("{}/.nutek:/root/.nutek", home::home_dir().unwrap().display())])
+            .build();
+        let d = docker.containers()
+            .create(&opts)
+            .await
+            .expect("nutek-core not created").id().to_string();
+        return d
+    }
+
+    async fn start_nutek_core(docker: Docker, nutek_id: &str) {
+        let _ = docker.containers().get(nutek_id)
+            .start().await.expect("nutek-core didn't started");
+    }
+
+    async fn stop_nutek_core(docker: Docker, nutek_id: &str) {
+        let _ = docker.containers().get(nutek_id)
+        .stop(Default::default()).await.expect("nutek-core didn't stoped");
+    }
+
+    async fn remove_nutek_core(docker: Docker, nutek_id: &str) {
+        let _ = docker.containers().get(nutek_id)
+        .remove(&Default::default())
+        .await.expect("nutek-core not removed");
+    }
+
+    /// # Rustscan
+    ///
+    ///
+    pub async fn rustscan(cmd: String) -> Result<String, Error> {
+       
+        let command = cmd.split_ascii_whitespace();
+        let mut cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        
+        let docker = &connect_to_docker_api();
+        let suffix: u128;
+        match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+            Ok(n) => {
+                suffix = n.as_millis()
+            },
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
+        let help_dash_dash = cmd.iter().position(|r| r == "--help");//.unwrap();
+        let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
+        if help_dash == None && help_dash_dash == None {
+            cmd.append(&mut vec!["-oX".to_string(), 
+                format!("/root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
+        }
+        let nutek_core_id = 
+            create_nutek_core(docker.clone(), &format!("{}", suffix))
+            .await;
+            let nutek_id = nutek_core_id.as_str();
+        start_nutek_core(docker.clone(), nutek_id).await;
+        
+        let options = ExecContainerOpts::builder()
+            .cmd(cmd)
+            .attach_stdout(true)
+            .attach_stderr(true)
+            .working_dir("/root")
+            .build();
+        let exec = Exec::create(
+            &docker, 
+            nutek_id, 
+            &options
+        ).await;
+        let mut stream = exec
+            .expect("not execed").start();
+        
+        let mut cmd_result = String::from("");
+        while let Some(tty) = stream.next().await {
+            let i = tty.unwrap();
+            let chunk = i.to_vec();
+            println!("{}", String::from_utf8_lossy(&chunk));
+            cmd_result = format!("{}{}", cmd_result, String::from_utf8_lossy(&chunk));
+        }
+        stop_nutek_core(docker.clone(), nutek_id).await;
+        remove_nutek_core(docker.clone(), nutek_id).await;
+        fs::write(format!("{}/.nutek/rustscan/scan_terminal_{}.txt", 
+            home::home_dir().unwrap().display(),
+            suffix),
+        cmd_result.clone())
+            .expect("unable to write report file");
+        Ok(format!("{}", suffix))
+    }
+
+    async fn run_cmd(cmd: String) -> Result<(), Error> {
+        let command = cmd.split_ascii_whitespace();
+        let cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        let docker = &connect_to_docker_api();
+        let suffix: u128;
+        match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+            Ok(n) => {
+                suffix = n.as_millis()
+            },
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
+        let nutek_core_id = 
+            create_nutek_core(docker.clone(), &format!("{}", suffix))
+            .await;
+            let nutek_id = nutek_core_id.as_str();
+        start_nutek_core(docker.clone(), nutek_id).await;
+        let options = ExecContainerOpts::builder()
+            .cmd(cmd)
+            .attach_stdout(true)
+            .attach_stderr(true)
+            .working_dir("/root")
+            .build();
+        let exec = Exec::create(
+            &docker, 
+            nutek_id, 
+            &options
+        ).await;
+        let mut stream = exec
+            .expect("not execed").start();
+        
+        let mut cmd_result = String::from("");
+        while let Some(tty) = stream.next().await {
+            let i = tty.unwrap();
+            let chunk = i.to_vec();
+            println!("{}", String::from_utf8_lossy(&chunk));
+            cmd_result = format!("{}{}", cmd_result, String::from_utf8_lossy(&chunk));
+        }
+        stop_nutek_core(docker.clone(), nutek_id).await;
+        remove_nutek_core(docker.clone(), nutek_id).await;
+        Ok(())
+    }
+
+    pub async fn nmap_xml_to_html(file: String, suffix: String) -> Result<String, Error> {
+        if file == String::from("") && suffix != String::from("") {
+            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_result_{}.xml 
+                -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+                .await.expect("can't creat nmap html report");
+        } else if file != String::from("") && suffix == String::from("") {
+            let suffix: u128;
+            match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+                Ok(n) => {
+                    suffix = n.as_millis()
+                },
+                Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+            };
+            fs::copy(file, 
+                format!("{}/.nutek/rustscan/nmap/scan_{}.xml", 
+                home::home_dir().unwrap().display(),
+                suffix))
+                .expect("can't copy file to nmap folder");
+            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_{}.xml
+            -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+                .await.expect("can't creat nmap html report from file");
+        }
+        let report_path = format!("{}/.nutek/rustscan/nmap/scan_{}.html",
+            home::home_dir().unwrap().display(),
+            suffix);
+        return Ok(report_path)
+    }
+
+    pub async fn open_nmap_html_report(path: String) -> Result<(), Error> {
+        open::that(format!("{}",
+            path))
+            .expect("can't open nmap scan website with report");
+        Ok(())
     }
 }
 
@@ -33,4 +240,68 @@ mod tests {
     fn hello_msg() {
         eprintln!("{}", hi_nutek())
     }
-}
+
+    use std::{process::Command, time::{SystemTime, self}};
+    #[test]
+    fn docker_presence() {
+        Command::new("docker")
+            .spawn()
+            .expect("docker command failed to start");
+    }
+
+    use crate::network::rustscan;
+    use std::fs;
+    #[tokio::test]
+    async fn rustscanscan_help() {
+        let res = rustscan("rustscan --help".to_string());
+        let my_res = res
+        .await
+        .expect("no rustscan result");
+        let f = fs::read(
+            format!("{}/.nutek/rustscan/scan_terminal_{}.txt",
+            home::home_dir().unwrap().display(), my_res))
+            .expect("can't open terminal logs of rustscan");
+        let txt = String::from_utf8_lossy(&f);
+        txt.find("rustscan 2.1.0")
+        .expect("rustscan version 2.1.0 not found");
+    }
+
+    use crate::network::nmap_xml_to_html;
+    #[tokio::test]
+    async fn scan_me_rustscan() {
+        let suffix: u128;
+        match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+            Ok(n) => {
+                suffix = n.as_millis()
+            },
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
+        let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
+            --ports 80 -- -A -T4 -O 
+            -oX /root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix))
+            .await.expect("can't scan scanme.nmap.org");
+    }
+
+    #[tokio::test]
+    async fn scan_me_with_report() {
+        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
+            --ports 80 -- -A -T4 -O"))
+            .await.expect("can't scan scanme.nmap.org");
+        let _ = nmap_xml_to_html("".to_string(), report_suffix)
+            .await.expect("can't create nmap website report");
+    }
+
+    use crate::network::open_nmap_html_report;
+    #[tokio::test]
+    async fn scan_me_open_report() {
+        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
+            --ports 80 -- -A -T4 -O"))
+            .await.expect("can't scan scanme.nmap.org");
+        let path = 
+            nmap_xml_to_html("".to_string(), report_suffix)
+            .await.expect("can't create nmap website report");
+        let _ = open_nmap_html_report(path)
+            .await
+            .expect("can't open website with nmap report");
+    }
+}   

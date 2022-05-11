@@ -1,11 +1,20 @@
 [package]
 name = "nutek-lib"
+authors = ["Neosb <museyoucoulduse@gmail.com>"]
 version = "0.1.0"
+license = "MIT"
 edition = "2021"
+readme = "README.md"
+repository = "https://github.com/phoenix-journey/nutek-lib"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tokio = { version = "1.18.1", features = ["full"] }
+docker-api = "0.8.0"
+futures = "0.3.21"
+open = "2.1.2"
+home = "0.5.3"
 
 [lib]
 #name = "foo"           # The name of the target.
