@@ -29,12 +29,6 @@ pub mod network {
     use docker_api::api::{ExecContainerOpts, ContainerCreateOpts};
     use futures::{StreamExt};
 
-    // fn home_dir() -> String {
-    //     let home_buf = home::home_dir().unwrap().display();
-    //     let home = home_buf.to_string();
-    //     return format!("{}", home)
-    // }
-
     #[cfg(unix)]
     fn new_docker() -> docker_api::Result<Docker> {
         Ok(Docker::unix("/var/run/docker.sock"))
@@ -53,24 +47,29 @@ pub mod network {
 
     use std::path::Path;
     pub fn create_working_dirs() {
-        let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let nutek: bool = Path::new(format!("{}/.nutek/", home::home_dir().unwrap().display()).as_str()).is_dir();
         if !nutek {
             fs::create_dir(format!("{}/.nutek/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek directory");
         }
-        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan/", home::home_dir().unwrap().display()).as_str()).is_dir();
         if !rustscan {
-            fs::create_dir(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()))
+            fs::create_dir(format!("{}/.nutek/rustscan/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/rustscan directory");
         }
-        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap/", home::home_dir().unwrap().display()).as_str()).is_dir();
         if !nmap {
-            fs::create_dir(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()))
+            fs::create_dir(format!("{}/.nutek/rustscan/nmap/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/rustscan/nmap directory");
+        }
+        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()).as_str()).is_dir();
+        if !run_cmd {
+            fs::create_dir(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/run_cmd directory");
         }
     }
 
-    async fn create_nutek_core(docker: Docker, container_name: &str) -> String {
+    async fn create_nutek_core(docker: Docker) -> String {
         create_working_dirs();
         let container_name_base = "nutek-core";
         let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
@@ -129,9 +128,9 @@ pub mod network {
                 format!("/root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
         }
         let nutek_core_id = 
-            create_nutek_core(docker.clone(), &format!("{}", suffix))
+            create_nutek_core(docker.clone())
             .await;
-            let nutek_id = nutek_core_id.as_str();
+        let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
         let options = ExecContainerOpts::builder()
@@ -165,21 +164,21 @@ pub mod network {
         Ok(format!("{}", suffix))
     }
 
-    async fn run_cmd(cmd: String) -> Result<(), Error> {
+    async fn run_cmd(cmd: String) -> Result<String, Error> {
         let command = cmd.split_ascii_whitespace();
         let cmd: Vec<String> = command.map(|x| x.to_string()).collect();
         let docker = &connect_to_docker_api();
         let suffix: u128;
         match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
-                suffix = n.as_millis()
+                suffix = n.as_micros()
             },
             Err(_) => panic!("SystemTime before UNIX EPOCH!"),
         };
         let nutek_core_id = 
-            create_nutek_core(docker.clone(), &format!("{}", suffix))
+            create_nutek_core(docker.clone())
             .await;
-            let nutek_id = nutek_core_id.as_str();
+        let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         let options = ExecContainerOpts::builder()
             .cmd(cmd)
@@ -202,9 +201,14 @@ pub mod network {
             println!("{}", String::from_utf8_lossy(&chunk));
             cmd_result = format!("{}{}", cmd_result, String::from_utf8_lossy(&chunk));
         }
+        fs::write(format!("{}/.nutek/run_cmd/terminal_cmd_{}.txt", 
+            home::home_dir().unwrap().display(),
+            suffix),
+        cmd_result.clone())
+            .expect("unable to write report file");
         stop_nutek_core(docker.clone(), nutek_id).await;
         remove_nutek_core(docker.clone(), nutek_id).await;
-        Ok(())
+        Ok(format!("{}", suffix))
     }
 
     pub async fn nmap_xml_to_html(file: String, suffix: String) -> Result<String, Error> {
@@ -216,7 +220,7 @@ pub mod network {
             let suffix: u128;
             match SystemTime::now().duration_since(time::UNIX_EPOCH) {
                 Ok(n) => {
-                    suffix = n.as_millis()
+                    suffix = n.as_micros()
                 },
                 Err(_) => panic!("SystemTime before UNIX EPOCH!"),
             };
@@ -270,12 +274,15 @@ mod tests {
         assert!(rustscan);
         let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(nmap);
+        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(run_cmd);
     }
 
     use std::{process::Command, time::{SystemTime, self}};
     #[tokio::test]
     async fn docker_presence() {
-        Command::new("docker")
+        let _ = Command::new("docker")
+            .args(["--version"])
             .spawn()
             .expect("docker command failed to start");
     }
