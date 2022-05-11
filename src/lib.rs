@@ -79,7 +79,7 @@ pub mod network {
 
     async fn create_nutek_core(docker: Docker) -> String {
         let container_name_base = "nutek-core";
-        let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
+        let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4().to_string());
         let core_img = "neosb/nutek-core:latest";
         let opts = 
             ContainerCreateOpts::builder(core_img)
@@ -87,7 +87,7 @@ pub mod network {
             .attach_stdout(true)
             .attach_stderr(true)
             .attach_stdin(true)
-            .volumes([format!("{}/.nutek:/root/nutek", home::home_dir().unwrap().display())])
+            .volumes([format!("{}/.nutek:/root/.nutek", home::home_dir().unwrap().display())])
             .build();
         let d = docker.containers()
             .create(&opts)
@@ -132,7 +132,7 @@ pub mod network {
         let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
         if help_dash == None && help_dash_dash == None {
             cmd.append(&mut vec!["-oX".to_string(), 
-                format!("/root/nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
+                format!("/root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
         }
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -220,8 +220,8 @@ pub mod network {
 
     pub async fn nmap_xml_to_html(file: String, suffix: String) -> Result<String, Error> {
         if file == String::from("") && suffix != String::from("") {
-            run_cmd(format!("xsltproc /root/nutek/rustscan/nmap/scan_result_{}.xml 
-                -o /root/nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_result_{}.xml 
+                -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report");
         } else if file != String::from("") && suffix == String::from("") {
             let suffix: u128;
@@ -236,8 +236,8 @@ pub mod network {
                 home::home_dir().unwrap().display(),
                 suffix))
                 .expect("can't copy file to nmap folder");
-            run_cmd(format!("xsltproc /root/nutek/rustscan/nmap/scan_{}.xml
-            -o /root/nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_{}.xml
+            -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report from file");
         }
         let report_path = format!("{}/.nutek/rustscan/nmap/scan_{}.html",
@@ -307,48 +307,48 @@ mod tests {
         .expect("rustscan version 2.1.0 not found");
     }
 
-    use crate::network::nmap_xml_to_html;
-    #[tokio::test]
-    async fn scan_me_rustscan() {
-        hello_msg();
-        create_dirs();
-        let suffix: u128;
-        match SystemTime::now().duration_since(time::UNIX_EPOCH) {
-            Ok(n) => {
-                suffix = n.as_millis()
-            },
-            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-        };
-        let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O 
-            -oX /root/nutek/rustscan/nmap/scan_result_{}.xml", suffix))
-            .await.expect("can't scan scanme.nmap.org");
-    }
+    // use crate::network::nmap_xml_to_html;
+    // #[tokio::test]
+    // async fn scan_me_rustscan() {
+    //     hello_msg();
+    //     create_dirs();
+    //     let suffix: u128;
+    //     match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+    //         Ok(n) => {
+    //             suffix = n.as_millis()
+    //         },
+    //         Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    //     };
+    //     let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
+    //         --ports 80 -- -A -T4 -O 
+    //         -oX /root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix))
+    //         .await.expect("can't scan scanme.nmap.org");
+    // }
 
-    #[tokio::test]
-    async fn scan_me_with_report() {
-        hello_msg();
-        create_dirs();
-        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O"))
-            .await.expect("can't scan scanme.nmap.org");
-        let _ = nmap_xml_to_html("".to_string(), report_suffix)
-            .await.expect("can't create nmap website report");
-    }
+    // #[tokio::test]
+    // async fn scan_me_with_report() {
+    //     hello_msg();
+    //     create_dirs();
+    //     let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
+    //         --ports 80 -- -A -T4 -O"))
+    //         .await.expect("can't scan scanme.nmap.org");
+    //     let _ = nmap_xml_to_html("".to_string(), report_suffix)
+    //         .await.expect("can't create nmap website report");
+    // }
 
-    use crate::network::open_nmap_html_report;
-    #[tokio::test]
-    async fn scan_me_open_report() {
-        hello_msg();
-        create_dirs();
-        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O"))
-            .await.expect("can't scan scanme.nmap.org");
-        let path = 
-            nmap_xml_to_html("".to_string(), report_suffix)
-            .await.expect("can't create nmap website report");
-        let _ = open_nmap_html_report(path)
-            .await
-            .expect("can't open website with nmap report");
-    }
+    // use crate::network::open_nmap_html_report;
+    // #[tokio::test]
+    // async fn scan_me_open_report() {
+    //     hello_msg();
+    //     create_dirs();
+    //     let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
+    //         --ports 80 -- -A -T4 -O"))
+    //         .await.expect("can't scan scanme.nmap.org");
+    //     let path = 
+    //         nmap_xml_to_html("".to_string(), report_suffix)
+    //         .await.expect("can't create nmap website report");
+    //     let _ = open_nmap_html_report(path)
+    //         .await
+    //         .expect("can't open website with nmap report");
+    // }
 }   

@@ -14,6 +14,7 @@ jobs:
       - run: curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/docker-ce-archive-keyring.gpg
       - run: apt update && apt -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
       # - run: apt update && apt -y install docker.io
+      - run: docker pull neosb/nutek-core:latest
       - checkout
       - run: cargo fix --edition
       - run: rustup component add clippy
