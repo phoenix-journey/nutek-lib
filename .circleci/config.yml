@@ -32,12 +32,10 @@ jobs:
   #     - run: .\rustc --version
   mac_os:
     macos:
-      xcode: 13.3.1
+      xcode: 13.3.0
     steps:
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
-      - setup_remote_docker:
-          version: 20.10.12
       - run: docker pull neosb/nutek-core:latest
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
       - run: export PATH="/root/.cargo/bin:$PATH"
       - checkout
       - run: cargo fix --edition
