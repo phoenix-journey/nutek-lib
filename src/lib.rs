@@ -47,22 +47,30 @@ pub mod network {
 
     use std::path::Path;
     pub fn create_working_dirs() {
-        let nutek: bool = Path::new(format!("{}/.nutek/", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let nutek: bool = Path::new(format!("{}/.nutek/", 
+            home::home_dir().unwrap().display()).as_str())
+            .exists();
         if !nutek {
             fs::create_dir(format!("{}/.nutek/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek directory");
         }
-        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan/", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan/", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
         if !rustscan {
             fs::create_dir(format!("{}/.nutek/rustscan/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/rustscan directory");
         }
-        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap/", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap/", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
         if !nmap {
             fs::create_dir(format!("{}/.nutek/rustscan/nmap/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/rustscan/nmap directory");
         }
-        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()).as_str()).is_dir();
+        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd/", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
         if !run_cmd {
             fs::create_dir(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/run_cmd directory");
