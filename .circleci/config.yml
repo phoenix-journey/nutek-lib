@@ -12,9 +12,9 @@ jobs:
       - run: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
       - run: sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
       - run: curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+      - run: docker pull neosb/nutek-core:latest
       - run: export PATH="/root/.cargo/bin:$PATH"
       - run: sudo apt-get -y install build-essential
-      - run: sudo apt-get -y install xsltproc
       - checkout
       - run: cargo fix --edition
       - run: rustup component add clippy
