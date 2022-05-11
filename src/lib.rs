@@ -40,9 +40,8 @@ pub mod network {
     }
 
     fn connect_to_docker_api() -> Docker {
-        let docker = new_docker()
-            .expect("no Docker!");
-        docker
+        new_docker()
+            .expect("no Docker!")
     }
 
     use std::path::Path;
@@ -246,7 +245,7 @@ pub mod network {
 
     pub async fn open_nmap_html_report(path: String) -> Result<(), Error> {
         open::that(format!("{}",
-            path.to_string()))
+            path).to_string())
             .expect("can't open nmap scan website with report");
         Ok(())
     }
@@ -335,7 +334,7 @@ mod tests {
             .await.expect("can't create nmap website report");
     }
 
-    use crate::network::open_nmap_html_report;
+    // use crate::network::open_nmap_html_report;
     #[tokio::test]
     async fn scan_me_open_report() {
         hello_msg();
@@ -346,8 +345,12 @@ mod tests {
         let path = 
             nmap_xml_to_html("".to_string(), report_suffix)
             .await.expect("can't create nmap website report");
-        let _ = open_nmap_html_report(path)
-            .await
-            .expect("can't open website with nmap report");
+        // can't open on headless client so... display path to file
+        // let _ = open_nmap_html_report(path)
+        //     .await
+        //     .expect("can't open website with nmap report");
+        println!("Website with scan report:");
+        println!("{}", path);
+
     }
 }   
