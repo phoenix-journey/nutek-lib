@@ -78,7 +78,6 @@ pub mod network {
     }
 
     async fn create_nutek_core(docker: Docker) -> String {
-        create_working_dirs();
         let container_name_base = "nutek-core";
         let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
         let core_img = "neosb/nutek-core:latest";
@@ -248,7 +247,6 @@ pub mod network {
     }
 
     pub async fn open_nmap_html_report(path: String) -> Result<(), Error> {
-        create_working_dirs();
         open::that(format!("{}",
             path))
             .expect("can't open nmap scan website with report");
@@ -258,23 +256,18 @@ pub mod network {
 
 #[cfg(test)]
 mod tests {
-    #[tokio::test]
-    async fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-
     use crate::hello::hi_nutek;
-    #[tokio::test]
-    async fn hello_msg() {
-        eprintln!("{}", hi_nutek())
+    #[test]
+    fn hello_msg() {
+        println!("{}", hi_nutek())
     }
 
     use crate::network::create_working_dirs;
     use std::fs;
     use std::path::Path;
-    #[tokio::test]
-    async fn create_dirs() {
+    #[test]
+    fn create_dirs() {
+        hello_msg();
         create_working_dirs();
         let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(nutek);
@@ -289,6 +282,7 @@ mod tests {
     use std::{process::Command, time::{SystemTime, self}};
     #[tokio::test]
     async fn docker_presence() {
+        hello_msg();
         let _ = Command::new("docker")
             .args(["--version"])
             .spawn()
@@ -298,6 +292,8 @@ mod tests {
     use crate::network::rustscan;
     #[tokio::test]
     async fn rustscan_help() {
+        hello_msg();
+        create_dirs();
         let res = rustscan("rustscan --help".to_string());
         let suffix = res
         .await
@@ -314,6 +310,8 @@ mod tests {
     use crate::network::nmap_xml_to_html;
     #[tokio::test]
     async fn scan_me_rustscan() {
+        hello_msg();
+        create_dirs();
         let suffix: u128;
         match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
@@ -329,6 +327,8 @@ mod tests {
 
     #[tokio::test]
     async fn scan_me_with_report() {
+        hello_msg();
+        create_dirs();
         let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
             --ports 80 -- -A -T4 -O"))
             .await.expect("can't scan scanme.nmap.org");
@@ -339,6 +339,8 @@ mod tests {
     use crate::network::open_nmap_html_report;
     #[tokio::test]
     async fn scan_me_open_report() {
+        hello_msg();
+        create_dirs();
         let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
             --ports 80 -- -A -T4 -O"))
             .await.expect("can't scan scanme.nmap.org");
