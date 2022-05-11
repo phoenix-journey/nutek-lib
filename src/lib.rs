@@ -17,17 +17,19 @@ pub mod hello {
 +#+ +:+ +#+ +#+    +:+     +#+     +#++:++#   +#++:++    
 +#+  +#+#+# +#+    +#+     +#+     +#+        +#+  +#+   
 #+#   #+#+# #+#    #+#     #+#     #+#        #+#   #+#  
-###    ####  ########      ###     ########## ###    ### "#
+###    ####  ########      ###     ########## ###    ### 😼
+Neosb @museyoucoulduse
+"#
     }
 }
 
-pub mod network {
-    use std::time::{SystemTime};
-    use std::{fs, time};
-    use std::io::{Error};
-    use docker_api::{Docker, Exec};
-    use docker_api::api::{ExecContainerOpts, ContainerCreateOpts};
-    use futures::{StreamExt};
+/// # Docker
+/// 
+/// docker specific set of functions
+/// 
+/// create, start, stop, remove
+pub mod docker {
+    use docker_api::{Docker, api::ContainerCreateOpts};
 
     #[cfg(unix)]
     fn new_docker() -> docker_api::Result<Docker> {
@@ -36,47 +38,19 @@ pub mod network {
         
     #[cfg(not(unix))]
     fn new_docker() -> docker_api::Result<Docker> {
-        Docker::new("tcp://127.0.0.1:8080")
+        Docker::new("http:\\localhost:2375")
     }
 
-    fn connect_to_docker_api() -> Docker {
+    /// connect to docker api 
+    pub fn connect_to_docker_api() -> Docker {
         new_docker()
             .expect("no Docker!")
     }
 
-    use std::path::Path;
-    pub fn create_working_dirs() {
-        let nutek: bool = Path::new(format!("{}/.nutek/", 
-            home::home_dir().unwrap().display()).as_str())
-            .exists();
-        if !nutek {
-            fs::create_dir(format!("{}/.nutek/", home::home_dir().unwrap().display()))
-                .expect("can't create .nutek directory");
-        }
-        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan/", 
-        home::home_dir().unwrap().display()).as_str())
-        .exists();
-        if !rustscan {
-            fs::create_dir(format!("{}/.nutek/rustscan/", home::home_dir().unwrap().display()))
-                .expect("can't create .nutek/rustscan directory");
-        }
-        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap/", 
-        home::home_dir().unwrap().display()).as_str())
-        .exists();
-        if !nmap {
-            fs::create_dir(format!("{}/.nutek/rustscan/nmap/", home::home_dir().unwrap().display()))
-                .expect("can't create .nutek/rustscan/nmap directory");
-        }
-        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd/", 
-        home::home_dir().unwrap().display()).as_str())
-        .exists();
-        if !run_cmd {
-            fs::create_dir(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()))
-                .expect("can't create .nutek/run_cmd directory");
-        }
-    }
-
-    async fn create_nutek_core(docker: Docker) -> String {
+    /// create nutek-core container
+    /// 
+    /// basically everything starts here
+    pub async fn create_nutek_core(docker: Docker) -> String {
         let container_name_base = "nutek-core";
         let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
         let core_img = "neosb/nutek-core:latest";
@@ -95,25 +69,119 @@ pub mod network {
         d
     }
 
-    async fn start_nutek_core(docker: Docker, nutek_id: &str) {
+    /// start nutek-core container
+    /// 
+    /// for nutek-lib api usage
+    pub async fn start_nutek_core(docker: Docker, nutek_id: &str) {
         let _ = docker.containers().get(nutek_id)
             .start().await.expect("nutek-core didn't started");
     }
 
-    async fn stop_nutek_core(docker: Docker, nutek_id: &str) {
+    /// stop nutek-core container
+    /// 
+    /// cleanu-up #1
+    pub async fn stop_nutek_core(docker: Docker, nutek_id: &str) {
         let _ = docker.containers().get(nutek_id)
         .stop(Default::default()).await.expect("nutek-core didn't stoped");
     }
 
-    async fn remove_nutek_core(docker: Docker, nutek_id: &str) {
+    /// remove nutek-core container
+    /// 
+    /// clean-up #2
+    pub async fn remove_nutek_core(docker: Docker, nutek_id: &str) {
         let _ = docker.containers().get(nutek_id)
         .remove(&Default::default())
         .await.expect("nutek-core not removed");
     }
+}
+
+/// # networking capabilities
+/// 
+/// currently uses nmap & rustscan
+/// planned features are gobuster,
+/// raccoon, nmap-analyze and others
+/// like recon-ng, metasploit...
+pub mod network {
+    use std::time::{SystemTime};
+    use std::{fs, time};
+    use docker_api::{Exec};
+    use docker_api::api::{ExecContainerOpts};
+    use futures::{StreamExt};
+    use std::io::Error;
+
+    use std::path::Path;
+    /// create Nutek working directories
+    /// for future use and storage in home directory
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// nutek_lib::network::create_working_dirs()
+    /// ```
+    pub fn create_working_dirs() {
+        let nutek: bool = Path::new(format!("{}/.nutek/", 
+            home::home_dir().unwrap().display()).as_str())
+            .exists();
+        if !nutek {
+            fs::create_dir(format!("{}/.nutek/", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek directory");
+        }
+        let network_scan: bool = Path::new(format!("{}/.nutek/network_scan", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
+        if !network_scan {
+            fs::create_dir(format!("{}/.nutek/network_scan", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/rustscan directory");
+        }
+        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd/", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
+        if !run_cmd {
+            fs::create_dir(format!("{}/.nutek/run_cmd/", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/run_cmd directory");
+        }
+        let cve: bool = Path::new(format!("{}/.nutek/cve/", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
+        if !cve {
+            fs::create_dir(format!("{}/.nutek/cve/", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/cve directory");
+        }
+    }
+
+
 
     /// # Rustscan
     ///
-    ///
+    /// dummy wrapper around RustScan
+    /// 
+    /// mostly used in aggressive scanning, fast port discovery
+    /// 
+    /// # Arguments:
+    /// 
+    /// * `cmd: String` arguments for fastscan
+    /// 
+    /// # Output:
+    /// 
+    /// * filename suffix which is the key in
+    /// 
+    ///     `.nutek/network_scan` folder
+    /// * writes raw command output
+    /// 
+    ///     to `terminal_cmd_`_suffix_`.txt`
+    /// 
+    /// # Examples
+    /// 
+    /// Rage port scan:
+    /// ```
+    /// use crate::nutek_lib::network::rustscan;
+    /// #[tokio::main]
+    /// async fn rage_scan() {
+    ///     let suffix = rustscan(
+    ///         "--addresses scanme.nmap.org".to_string()
+    ///     ).await;
+    /// }
+    /// ```
     pub async fn rustscan(cmd: String) -> Result<String, Error> {
 
         let command = cmd.split_ascii_whitespace();
@@ -131,7 +199,7 @@ pub mod network {
         let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
         if help_dash == None && help_dash_dash == None {
             cmd.append(&mut vec!["-oX".to_string(), 
-                format!("/root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix)]);
+                format!("/root/.nutek/network_scan/scan_result_{}.xml", suffix)]);
         }
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -162,7 +230,7 @@ pub mod network {
         }
         stop_nutek_core(docker.clone(), nutek_id).await;
         remove_nutek_core(docker.clone(), nutek_id).await;
-        fs::write(format!("{}/.nutek/rustscan/scan_terminal_{}.txt", 
+        fs::write(format!("{}/.nutek/network_scan/terminal_cmd_{}.txt", 
             home::home_dir().unwrap().display(),
             suffix),
         cmd_result.clone())
@@ -170,7 +238,30 @@ pub mod network {
         Ok(format!("{}", suffix))
     }
 
-    async fn run_cmd(cmd: String) -> Result<String, Error> {
+    /// # Run any command...
+    /// 
+    /// ...inside nutek-core container
+    /// 
+    /// # Arguments:
+    /// 
+    /// * `cmd: String` - the _command_
+    /// 
+    /// # Output:
+    /// 
+    /// * filename **suffix** which is the key in
+    /// 
+    ///     `.nutek/run_cmd/terminal_cmd_`*suffix*`.txt`
+    /// 
+    /// # Examples
+    /// ```
+    /// #[tokio::main]
+    /// async fn run() {
+    ///     let suffix = nutek_lib::network::run_cmd(
+    ///         "echo 'Hi Nutek!'".to_string()
+    ///     ).await.expect("Nutek no run :(");
+    /// }
+    /// ```
+    pub async fn run_cmd(cmd: String) -> Result<String, Error> {
         let command = cmd.split_ascii_whitespace();
         let cmd: Vec<String> = command.map(|x| x.to_string()).collect();
         let docker = &connect_to_docker_api();
@@ -216,11 +307,67 @@ pub mod network {
         Ok(format!("{}", suffix))
     }
 
+    use std::{
+        fs::File,
+        io::{prelude::*, BufReader},
+    };
+
+    use crate::docker::{create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core, connect_to_docker_api};
+    fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {
+        let file = File::open(filename).expect("no such file");
+        let buf = BufReader::new(file);
+        buf.lines()
+            .map(|l| l.expect("Could not parse line"))
+            .collect()
+    }
+
+    /// # Make a website from Nmap XML
+    /// 
+    /// now you see me... and browse me
+    /// 
+    /// # Arguments:
+    /// 
+    /// - Interchangeably, provide one, second
+    /// 
+    ///     empty like `*""`
+    /// 
+    ///     * `file` - custom xml file, somewhere in `.nutek`
+    /// 
+    ///         folder
+    ///     * `suffix` - mostly for programming, 
+    /// 
+    ///         but you can extract the number from file
+    /// 
+    ///         name in `.nutek/network_scan` folder
+    /// 
+    ///         and work with that.
+    /// 
+    /// # Output:
+    /// 
+    /// * writes webisite with report
+    ///     in `.nutek/network_scan/scan_`_suffix_`.html`
+    /// 
+    /// * returns `path` to created website with report
+    /// 
+    /// # Examples
+    /// ```
+    /// #[tokio::main]
+    /// async fn website() {
+    ///     let path = 
+    ///         nutek_lib::network::nmap_xml_to_html(String::from(""), String::from(""))
+    ///         .await.expect("no browse");
+    ///     println!("{}", path);
+    /// }
+    /// ```
     pub async fn nmap_xml_to_html(file: String, suffix: String) -> Result<String, Error> {
+        let mut report_path = String::from("");
         if file == *"" && suffix != *"" {
-            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_result_{}.xml 
-                -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            run_cmd(format!("xsltproc /root/.nutek/network_scan/scan_result_{}.xml 
+                -o /root/.nutek/network_scan/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report");
+            report_path = format!("{}/.nutek/network_scan/scan_{}.html",
+                home::home_dir().unwrap().display(),
+                suffix);
         } else if file != *"" && suffix == *"" {
             let suffix: u128 = match SystemTime::now().duration_since(time::UNIX_EPOCH) {
                 Ok(n) => {
@@ -229,24 +376,133 @@ pub mod network {
                 Err(_) => panic!("SystemTime before UNIX EPOCH!"),
             };
             fs::copy(file, 
-                format!("{}/.nutek/rustscan/nmap/scan_{}.xml", 
+                format!("{}/.nutek/network_scan/scan_{}.xml", 
                 home::home_dir().unwrap().display(),
                 suffix))
                 .expect("can't copy file to nmap folder");
-            run_cmd(format!("xsltproc /root/.nutek/rustscan/nmap/scan_{}.xml
-            -o /root/.nutek/rustscan/nmap/scan_{}.html", suffix, suffix))
+            let mut lines = lines_from_file(
+                format!("{}/.nutek/network_scan/scan_{}.xml",
+                    home::home_dir().unwrap().display(), suffix));
+            // let mut stylesheet = lines.get(2).expect("no style line in file");
+            // let stylesheet = 
+            // {
+                // let mut style_line = &mut ; 
+            lines[2] = r#"<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>"#.to_string();
+            // }
+            let mut f = File::create(
+                format!("{}/.nutek/network_scan/scan_{}.xml",
+                home::home_dir().unwrap().display(), suffix))
+                .expect("unable to create xml file");                                                                                                          
+            for i in &lines{                                                                                                                                                                  
+                f.write_all(i.as_bytes()).expect("unable to write data to xml stage file");                                                                                                                            
+            }
+            run_cmd(format!("xsltproc /root/.nutek/network_scan/scan_{}.xml
+            -o /root/.nutek/network_scan/scan_{}.html", suffix, suffix))
                 .await.expect("can't creat nmap html report from file");
+            report_path = format!("{}/.nutek/network_scan/scan_{}.html",
+                home::home_dir().unwrap().display(),
+                suffix);
         }
-        let report_path = format!("{}/.nutek/rustscan/nmap/scan_{}.html",
-            home::home_dir().unwrap().display(),
-            suffix);
         Ok(report_path)
     }
 
+    /// # Open file in graphical user interface
+    /// 
+    /// # Arguments
+    /// 
+    /// * path - system path to your file
+    /// 
+    /// # Outputs
+    /// 
+    /// Open system default program for 
+    /// 
+    /// the file in question
     pub async fn open_nmap_html_report(path: String) -> Result<(), Error> {
         open::that(format!("{}",
             path).to_string())
             .expect("can't open nmap scan website with report");
+        Ok(())
+    }
+}
+
+pub mod cve {
+    use std::{io::Error, fs};
+    use futures::{StreamExt};
+    use docker_api::{ExecContainerOpts, Exec};
+
+    use crate::docker::{connect_to_docker_api, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
+
+    pub async fn nvd_cve(cmd: String) -> Result<(), Error> {
+
+        let command = cmd.split_ascii_whitespace();
+        let mut cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        
+        let docker = &connect_to_docker_api();
+
+        let help_dash_dash = cmd.iter().position(|r| r == "--help");//.unwrap();
+        let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
+        if help_dash == None && help_dash_dash == None {
+            cmd.append(&mut vec!["--db".to_string(), 
+                "/root/.nutek/cve/sync.db".to_string()]);
+        }
+        let search_cmd = cmd.iter().position(|r| r == "search");
+        let text_dash_dash = cmd.iter().position(|r| r == "--text");//.unwrap();
+        let text_dash = cmd.iter().position(|r| r == "-t");//.unwrap();
+        let mut cve_one_filename = "".to_string();
+        let mut cve_list_filename = "".to_string();
+        if search_cmd != None && text_dash == None && text_dash_dash == None{
+            cve_one_filename = cmd.get(2).expect("no cve supplied").to_string();
+        } else if search_cmd != None && (text_dash != None || text_dash_dash != None) {
+            let cmd_len = cmd.len();
+            cve_list_filename = cmd[3..cmd_len].join("_").to_string();
+            cve_list_filename = cve_list_filename.strip_suffix("_--db_/root/.nutek/cve/sync.db").unwrap_or_else(|| &cve_list_filename).to_string();
+            cve_list_filename = cve_list_filename.strip_prefix("'").unwrap_or_else(|| &cve_list_filename).to_string();
+            cve_list_filename = cve_list_filename.strip_suffix("'").unwrap_or_else(|| &cve_list_filename).to_string();
+            cve_list_filename = cve_list_filename.strip_prefix('"').unwrap_or_else(|| &cve_list_filename).to_string();
+            cve_list_filename = cve_list_filename.strip_suffix('"').unwrap_or_else(|| &cve_list_filename).to_string();
+        }
+        let nutek_core_id = 
+            create_nutek_core(docker.clone())
+            .await;
+        let nutek_id = nutek_core_id.as_str();
+        start_nutek_core(docker.clone(), nutek_id).await;
+        
+        let options = ExecContainerOpts::builder()
+            .cmd(cmd)
+            .attach_stdout(true)
+            .attach_stderr(true)
+            .working_dir("/root")
+            .build();
+        let exec = Exec::create(
+            docker, 
+            nutek_id, 
+            &options
+        ).await;
+        let mut stream = exec
+            .expect("not execed").start();
+        
+        let mut cmd_result = String::from("");
+        while let Some(tty) = stream.next().await {
+            let i = tty.unwrap();
+            let chunk = i.to_vec();
+            println!("{}", String::from_utf8_lossy(&chunk));
+            cmd_result = format!("{}{}", cmd_result, String::from_utf8_lossy(&chunk));
+        }
+        if cve_one_filename != "".to_string() {
+            fs::write(format!("{}/.nutek/cve/{}.json", 
+                home::home_dir().unwrap().display(),
+                cve_one_filename),
+            cmd_result.clone())
+                .expect("unable to write report file");
+        } else if cve_list_filename != "".to_string() {
+            fs::write(format!("{}/.nutek/cve/{}.txt", 
+                home::home_dir().unwrap().display(),
+                cve_list_filename),
+            cmd_result.clone())
+                .expect("unable to write report file");
+        }
+        stop_nutek_core(docker.clone(), nutek_id).await;
+        remove_nutek_core(docker.clone(), nutek_id).await;
         Ok(())
     }
 }
@@ -267,12 +523,12 @@ mod tests {
         create_working_dirs();
         let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(nutek);
-        let rustscan: bool = Path::new(format!("{}/.nutek/rustscan", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(rustscan);
-        let nmap: bool = Path::new(format!("{}/.nutek/rustscan/nmap", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(nmap);
+        let network_scan: bool = Path::new(format!("{}/.nutek/network_scan", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(network_scan);
         let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(run_cmd);
+        let cve: bool = Path::new(format!("{}/.nutek/cve", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(cve);
     }
 
     use std::process::Command;
@@ -297,7 +553,7 @@ mod tests {
         .await
         .expect("no rustscan result");
         let f = fs::read(
-            format!("{}/.nutek/rustscan/scan_terminal_{}.txt",
+            format!("{}/.nutek/network_scan/terminal_cmd_{}.txt",
             home::home_dir().unwrap().display(), suffix))
             .expect("can't open terminal logs of rustscan");
         let txt = String::from_utf8_lossy(&f);
@@ -319,7 +575,7 @@ mod tests {
         };
         let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
             --ports 80 -- -A -T4 -O 
-            -oX /root/.nutek/rustscan/nmap/scan_result_{}.xml", suffix))
+            -oX /root/.nutek/network_scan/scan_result_{}.xml", suffix))
             .await.expect("can't scan scanme.nmap.org");
     }
 
@@ -334,8 +590,18 @@ mod tests {
             .await.expect("can't create nmap website report");
     }
 
-    // use crate::network::open_nmap_html_report;
     #[tokio::test]
+    async fn report_from_local_file() {
+        hello_msg();
+        create_dirs();
+        let home = nmap_xml_to_html(format!("{}/tryhackme/beginning-nmap.xml", home::home_dir().unwrap().display()), "".to_string())
+            .await.expect("can't create nmap website report");
+        println!("{}", home);
+    }
+
+    use crate::network::open_nmap_html_report;
+    #[tokio::test]
+    #[ignore]
     async fn scan_me_open_report() {
         hello_msg();
         create_dirs();
@@ -345,12 +611,38 @@ mod tests {
         let path = 
             nmap_xml_to_html("".to_string(), report_suffix)
             .await.expect("can't create nmap website report");
-        // can't open on headless client so... display path to file
-        // let _ = open_nmap_html_report(path)
-        //     .await
-        //     .expect("can't open website with nmap report");
+        // can't open on headless client so... 
+        // display path to the website with report
+        // AND #[ignore]
+        let _ = open_nmap_html_report(path.clone())
+            .await
+            .expect("can't open website with nmap report");
         println!("Website with scan report:");
-        println!("{}", path);
+        println!("{}", path.clone());
+    }
 
+    use crate::cve::nvd_cve;
+    #[tokio::test]
+    async fn sync_cve() {
+        hello_msg();
+        create_dirs();
+        let _ = nvd_cve("nvd_cve sync".to_string())
+            .await.expect("no vulnerabilities found");
+    }
+
+    #[tokio::test]
+    async fn search_cve_id() {
+        hello_msg();
+        create_dirs();
+        let _ = nvd_cve("nvd_cve search CVE-2022-1175".to_string())
+            .await.expect("no exploits");
+    }
+
+    #[tokio::test]
+    async fn search_cve_text() {
+        hello_msg();
+        create_dirs();
+        let _ = nvd_cve("nvd_cve search --text 'remote ruby'".to_string())
+            .await.expect("no exploits");
     }
 }   

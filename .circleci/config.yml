@@ -30,21 +30,21 @@ jobs:
   #     - run: curl -Uri https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe
   #     - run: .\rustup-init.exe --default-toolchain stable -y
   #     - run: .\rustc --version
-  mac_os:
-    macos:
-      xcode: 13.3.0
-    steps:
-      - run: docker pull neosb/nutek-core:latest
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
-      - run: export PATH="/root/.cargo/bin:$PATH"
-      - checkout
-      - run: cargo fix --edition
-      - run: rustup component add clippy
-      - run: cargo clippy
-      - run: cargo test
-      - run: cargo build  --release
+  # mac_os:
+  #   macos:
+  #     xcode: 13.3.0
+  #   steps:
+  ##     /bin/bash: docker: command not found
+  #     - run: docker pull neosb/nutek-core:latest
+  #     - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain stable -y
+  #     - run: export PATH="/root/.cargo/bin:$PATH"
+  #     - checkout
+  #     - run: cargo fix --edition
+  #     - run: rustup component add clippy
+  #     - run: cargo clippy
+  #     - run: cargo test
+  #     - run: cargo build  --release
 workflows:
   production:
     jobs:
-      # - lint_test_build
-      - mac_os
+      - lint_test_build
