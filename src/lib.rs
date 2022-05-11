@@ -95,28 +95,15 @@ pub mod docker {
     }
 }
 
-/// # networking capabilities
-/// 
-/// currently uses nmap & rustscan
-/// planned features are gobuster,
-/// raccoon, nmap-analyze and others
-/// like recon-ng, metasploit...
-pub mod network {
-    use std::time::{SystemTime};
-    use std::{fs, time};
-    use docker_api::{Exec};
-    use docker_api::api::{ExecContainerOpts};
-    use futures::{StreamExt};
-    use std::io::Error;
-
-    use std::path::Path;
+pub mod system {
+    use std::{path::Path, fs};
     /// create Nutek working directories
     /// for future use and storage in home directory
     /// 
     /// # Examples
     /// 
     /// ```
-    /// nutek_lib::network::create_working_dirs()
+    /// nutek_lib::system::create_working_dirs()
     /// ```
     pub fn create_working_dirs() {
         let nutek: bool = Path::new(format!("{}/.nutek/", 
@@ -147,7 +134,32 @@ pub mod network {
             fs::create_dir(format!("{}/.nutek/cve/", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/cve directory");
         }
+        let cve_db: bool = Path::new(format!("{}/.nutek/cve/database", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
+        if !cve_db {
+            fs::create_dir(format!("{}/.nutek/cve/database", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/cve/database directory");
+        }
     }
+}
+
+/// # networking capabilities
+/// 
+/// currently uses nmap & rustscan
+/// planned features are gobuster,
+/// raccoon, nmap-analyze and others
+/// like recon-ng, metasploit...
+pub mod network {
+    use std::path::Path;
+    use std::time::{SystemTime};
+    use std::{fs, time};
+    use docker_api::{Exec};
+    use docker_api::api::{ExecContainerOpts};
+    use futures::{StreamExt};
+    use std::io::Error;
+
+
 
 
 
@@ -432,6 +444,48 @@ pub mod cve {
 
     use crate::docker::{connect_to_docker_api, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
 
+    /// # CVE Databse
+    /// 
+    /// Search for errors and exploits,
+    /// 
+    /// attack vectors, and info on
+    /// 
+    /// vulnerebilities
+    /// 
+    /// # Arguments
+    /// 
+    /// * cmd start with nvd_cve and try with --help
+    /// 
+    /// # Returns
+    /// 
+    /// - Nothing
+    /// 
+    /// * writes to files in `.nutek/cve` directory
+    /// 
+    /// # Examples
+    /// 
+    /// 
+    /// sync with remote CVE database
+    /// 
+    /// you might need to run this command few times
+    /// 
+    /// as the remote database is not an Uzi
+    /// ```
+    /// #[tokio::main]
+    /// async fn sync_cve_db() {
+    ///     let _ = nutek_lib::cve::nvd_cve("nvd_cve sync".to_string())
+    ///         .await.expect("no vulnerabilities found");
+    /// }
+    /// ```
+    /// 
+    /// for more info look here:
+    /// ```
+    /// #[tokio::main]
+    /// async fn sync_cve_db() {
+    ///     let _ = nutek_lib::cve::nvd_cve("nvd_cve search --help".to_string())
+    ///         .await.expect("no vulnerabilities found");
+    /// }
+    /// ```
     pub async fn nvd_cve(cmd: String) -> Result<(), Error> {
 
         let command = cmd.split_ascii_whitespace();
@@ -443,7 +497,7 @@ pub mod cve {
         let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
         if help_dash == None && help_dash_dash == None {
             cmd.append(&mut vec!["--db".to_string(), 
-                "/root/.nutek/cve/sync.db".to_string()]);
+                "/root/.nutek/cve/database/sync.db".to_string()]);
         }
         let search_cmd = cmd.iter().position(|r| r == "search");
         let text_dash_dash = cmd.iter().position(|r| r == "--text");//.unwrap();
@@ -455,7 +509,7 @@ pub mod cve {
         } else if search_cmd != None && (text_dash != None || text_dash_dash != None) {
             let cmd_len = cmd.len();
             cve_list_filename = cmd[3..cmd_len].join("_").to_string();
-            cve_list_filename = cve_list_filename.strip_suffix("_--db_/root/.nutek/cve/sync.db").unwrap_or_else(|| &cve_list_filename).to_string();
+            cve_list_filename = cve_list_filename.strip_suffix("_--db_/root/.nutek/cve/database/sync.db").unwrap_or_else(|| &cve_list_filename).to_string();
             cve_list_filename = cve_list_filename.strip_prefix("'").unwrap_or_else(|| &cve_list_filename).to_string();
             cve_list_filename = cve_list_filename.strip_suffix("'").unwrap_or_else(|| &cve_list_filename).to_string();
             cve_list_filename = cve_list_filename.strip_prefix('"').unwrap_or_else(|| &cve_list_filename).to_string();
@@ -506,143 +560,3 @@ pub mod cve {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::hello::hi_nutek;
-    #[test]
-    fn hello_msg() {
-        println!("{}", hi_nutek())
-    }
-
-    use crate::network::create_working_dirs;
-    use std::fs;
-    use std::path::Path;
-    #[test]
-    fn create_dirs() {
-        create_working_dirs();
-        let nutek: bool = Path::new(format!("{}/.nutek", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(nutek);
-        let network_scan: bool = Path::new(format!("{}/.nutek/network_scan", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(network_scan);
-        let run_cmd: bool = Path::new(format!("{}/.nutek/run_cmd", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(run_cmd);
-        let cve: bool = Path::new(format!("{}/.nutek/cve", home::home_dir().unwrap().display()).as_str()).is_dir();
-        assert!(cve);
-    }
-
-    use std::process::Command;
-    use std::time;
-    use std::time::SystemTime;
-    #[tokio::test]
-    async fn docker_presence() {
-        hello_msg();
-        let _ = Command::new("docker")
-            .args(["--version"])
-            .spawn()
-            .expect("docker command failed to start");
-    }
-
-    use crate::network::rustscan;
-    #[tokio::test]
-    async fn rustscan_help() {
-        hello_msg();
-        create_dirs();
-        let res = rustscan("rustscan --help".to_string());
-        let suffix = res
-        .await
-        .expect("no rustscan result");
-        let f = fs::read(
-            format!("{}/.nutek/network_scan/terminal_cmd_{}.txt",
-            home::home_dir().unwrap().display(), suffix))
-            .expect("can't open terminal logs of rustscan");
-        let txt = String::from_utf8_lossy(&f);
-        txt.find("rustscan 2.1.0")
-        .expect("rustscan version 2.1.0 not found");
-    }
-
-    use crate::network::nmap_xml_to_html;
-    #[tokio::test]
-    async fn scan_me_rustscan() {
-        hello_msg();
-        create_dirs();
-        let suffix: u128;
-        match SystemTime::now().duration_since(time::UNIX_EPOCH) {
-            Ok(n) => {
-                suffix = n.as_millis()
-            },
-            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
-        };
-        let _ = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O 
-            -oX /root/.nutek/network_scan/scan_result_{}.xml", suffix))
-            .await.expect("can't scan scanme.nmap.org");
-    }
-
-    #[tokio::test]
-    async fn scan_me_with_report() {
-        hello_msg();
-        create_dirs();
-        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O"))
-            .await.expect("can't scan scanme.nmap.org");
-        let _ = nmap_xml_to_html("".to_string(), report_suffix)
-            .await.expect("can't create nmap website report");
-    }
-
-    #[tokio::test]
-    async fn report_from_local_file() {
-        hello_msg();
-        create_dirs();
-        let home = nmap_xml_to_html(format!("{}/tryhackme/beginning-nmap.xml", home::home_dir().unwrap().display()), "".to_string())
-            .await.expect("can't create nmap website report");
-        println!("{}", home);
-    }
-
-    use crate::network::open_nmap_html_report;
-    #[tokio::test]
-    #[ignore]
-    async fn scan_me_open_report() {
-        hello_msg();
-        create_dirs();
-        let report_suffix = rustscan(format!("rustscan --addresses scanme.nmap.org 
-            --ports 80 -- -A -T4 -O"))
-            .await.expect("can't scan scanme.nmap.org");
-        let path = 
-            nmap_xml_to_html("".to_string(), report_suffix)
-            .await.expect("can't create nmap website report");
-        // can't open on headless client so... 
-        // display path to the website with report
-        // AND #[ignore]
-        let _ = open_nmap_html_report(path.clone())
-            .await
-            .expect("can't open website with nmap report");
-        println!("Website with scan report:");
-        println!("{}", path.clone());
-    }
-
-    use crate::cve::nvd_cve;
-    #[tokio::test]
-    async fn sync_cve() {
-        hello_msg();
-        create_dirs();
-        let _ = nvd_cve("nvd_cve sync".to_string())
-            .await.expect("no vulnerabilities found");
-    }
-
-    #[tokio::test]
-    async fn search_cve_id() {
-        hello_msg();
-        create_dirs();
-        let _ = nvd_cve("nvd_cve search CVE-2022-1175".to_string())
-            .await.expect("no exploits");
-    }
-
-    #[tokio::test]
-    async fn search_cve_text() {
-        hello_msg();
-        create_dirs();
-        let _ = nvd_cve("nvd_cve search --text 'remote ruby'".to_string())
-            .await.expect("no exploits");
-    }
-}   
