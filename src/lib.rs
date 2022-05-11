@@ -277,6 +277,7 @@ mod tests {
     }
 
     use std::process::Command;
+    use std::time;
     use std::time::SystemTime;
     #[tokio::test]
     async fn docker_presence() {
