@@ -20,7 +20,7 @@ pub mod scanners {
     /// 
     /// ## USAGE:
     /// 
-    ///     `rustscan [FLAGS] [OPTIONS] [-- <command>...]`
+    /// `rustscan [FLAGS] [OPTIONS] [-- <command>...]`
     /// 
     /// ##FLAGS:
     /// 

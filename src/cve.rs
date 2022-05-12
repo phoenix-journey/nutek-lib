@@ -11,7 +11,7 @@ pub mod cves {
     ///
     /// ## USAGE:
     /// 
-    ///     `nvd_cve [SUBCOMMAND]`
+    /// `nvd_cve [SUBCOMMAND]`
     ///
     /// ## FLAGS:
     /// 
@@ -31,7 +31,8 @@ pub mod cves {
     ///  Sync CVE feeds to local database
     ///
     /// ## USAGE:
-    ///     `nvd_cve sync [FLAGS] [OPTIONS]`
+    /// 
+    /// `nvd_cve sync [FLAGS] [OPTIONS]`
     ///
     /// ## FLAGS:
     /// `-f, --force`           Ignore existing Metafiles and force update all feeds
@@ -61,7 +62,8 @@ pub mod cves {
     /// Search for a CVE by ID in the local cache
     ///
     /// ## USAGE:
-    ///     `nvd_cve search [FLAGS] [OPTIONS] [CVE]`
+    /// 
+    /// `nvd_cve search [FLAGS] [OPTIONS] [CVE]`
     ///
     /// ## FLAGS:
     /// 

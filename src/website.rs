@@ -9,7 +9,7 @@ pub mod crawlers {
 
     /// # Raccoon
     /// 
-    /// Usage: `raccoon [OPTIONS] TARGET`
+    /// Usage: raccoon [OPTIONS] TARGET
     ///
     /// ## Options:
     /// 
@@ -117,7 +117,8 @@ pub mod crawlers {
     /// A fast, simple, recursive content discovery tool.
     ///
     /// ## USAGE:
-    ///     `feroxbuster [OPTIONS]`
+    /// 
+    /// `feroxbuster [OPTIONS]`
     ///
     /// ## OPTIONS:
     /// 
@@ -366,7 +367,7 @@ pub mod crawlers {
     ///         `./feroxbuster -u http://127.1 --auto-bail`
     ///         `./feroxbuster -u http://127.1 --auto-tune`
     ///
-    ///     Examples and demonstrations of all features
+    /// Examples and demonstrations of all features
     ///         https://epi052.github.io/feroxbuster-docs/docs/examples/
     pub async fn feroxbuster_help() -> Result<(), Error> {
         let docker = &connect_to_docker_api();
