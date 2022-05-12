@@ -10,6 +10,8 @@ repository = "https://github.com/phoenix-journey/nutek-lib"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+soup = "0.5.1"
+reqwest = { version = "0.11" }
 tokio = { version = "1.18.1", features = ["full"] }
 docker-api = "0.8.0"
 futures = "0.3.21"

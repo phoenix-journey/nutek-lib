@@ -1,8 +1,8 @@
 pub mod hello {
-    /// This is my cat's drawing of the key
+    /// # This is my cat's drawing of the key
     /// ___
     ///
-    /// # Examples
+    /// ## Examples
     ///
     /// ```
     /// // Draw a key
@@ -100,7 +100,7 @@ pub mod system {
     /// create Nutek working directories
     /// for future use and storage in home directory
     /// 
-    /// # Examples
+    /// ## Examples
     /// 
     /// ```
     /// nutek_lib::system::create_working_dirs()
@@ -141,6 +141,13 @@ pub mod system {
             fs::create_dir(format!("{}/.nutek/cve/database", home::home_dir().unwrap().display()))
                 .expect("can't create .nutek/cve/database directory");
         }
+        let bing: bool = Path::new(format!("{}/.nutek/search", 
+        home::home_dir().unwrap().display()).as_str())
+        .exists();
+        if !bing {
+            fs::create_dir(format!("{}/.nutek/search", home::home_dir().unwrap().display()))
+                .expect("can't create .nutek/search directory");
+        }
     }
 }
 
@@ -169,20 +176,20 @@ pub mod network {
     /// 
     /// mostly used in aggressive scanning, fast port discovery
     /// 
-    /// # Arguments:
+    /// ## Arguments:
     /// 
     /// * `cmd: String` arguments for fastscan
     /// 
-    /// # Output:
+    /// ## Output:
     /// 
     /// * filename suffix which is the key in
     /// 
     ///     `.nutek/network_scan` folder
     /// * writes raw command output
     /// 
-    ///     to `terminal_cmd_`_suffix_`.txt`
+    ///     to `rustscan_cmd_`_suffix_`.txt`
     /// 
-    /// # Examples
+    /// ## Examples
     /// 
     /// Rage port scan:
     /// ```
@@ -242,7 +249,7 @@ pub mod network {
         }
         stop_nutek_core(docker.clone(), nutek_id).await;
         remove_nutek_core(docker.clone(), nutek_id).await;
-        fs::write(format!("{}/.nutek/network_scan/terminal_cmd_{}.txt", 
+        fs::write(format!("{}/.nutek/network_scan/rustscan_cmd_{}.txt", 
             home::home_dir().unwrap().display(),
             suffix),
         cmd_result.clone())
@@ -254,17 +261,18 @@ pub mod network {
     /// 
     /// ...inside nutek-core container
     /// 
-    /// # Arguments:
+    /// ## Arguments:
     /// 
     /// * `cmd: String` - the _command_
     /// 
-    /// # Output:
+    /// ## Output:
     /// 
     /// * filename **suffix** which is the key in
     /// 
     ///     `.nutek/run_cmd/terminal_cmd_`*suffix*`.txt`
     /// 
-    /// # Examples
+    /// ## Examples
+    /// 
     /// ```
     /// #[tokio::main]
     /// async fn run() {
@@ -276,6 +284,7 @@ pub mod network {
     pub async fn run_cmd(cmd: String) -> Result<String, Error> {
         let command = cmd.split_ascii_whitespace();
         let cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        let cmdlet = cmd.get(0).unwrap().to_owned();
         let docker = &connect_to_docker_api();
         let suffix: u128 = match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
@@ -309,8 +318,9 @@ pub mod network {
             println!("{}", String::from_utf8_lossy(&chunk));
             cmd_result = format!("{}{}", cmd_result, String::from_utf8_lossy(&chunk));
         }
-        fs::write(format!("{}/.nutek/run_cmd/terminal_cmd_{}.txt", 
+        fs::write(format!("{}/.nutek/run_cmd/{}_cmd_{}.txt", 
             home::home_dir().unwrap().display(),
+            cmdlet,
             suffix),
         cmd_result.clone())
             .expect("unable to write report file");
@@ -337,7 +347,7 @@ pub mod network {
     /// 
     /// now you see me... and browse me
     /// 
-    /// # Arguments:
+    /// ## Arguments:
     /// 
     /// - Interchangeably, provide one, second
     /// 
@@ -354,14 +364,15 @@ pub mod network {
     /// 
     ///         and work with that.
     /// 
-    /// # Output:
+    /// ## Output:
     /// 
     /// * writes webisite with report
     ///     in `.nutek/network_scan/scan_`_suffix_`.html`
     /// 
     /// * returns `path` to created website with report
     /// 
-    /// # Examples
+    /// ## Examples
+    /// 
     /// ```
     /// #[tokio::main]
     /// async fn website() {
@@ -395,10 +406,6 @@ pub mod network {
             let mut lines = lines_from_file(
                 format!("{}/.nutek/network_scan/scan_{}.xml",
                     home::home_dir().unwrap().display(), suffix));
-            // let mut stylesheet = lines.get(2).expect("no style line in file");
-            // let stylesheet = 
-            // {
-                // let mut style_line = &mut ; 
             lines[2] = r#"<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>"#.to_string();
             // }
             let mut f = File::create(
@@ -420,11 +427,11 @@ pub mod network {
 
     /// # Open file in graphical user interface
     /// 
-    /// # Arguments
+    /// ## Arguments
     /// 
     /// * path - system path to your file
     /// 
-    /// # Outputs
+    /// ## Outputs
     /// 
     /// Open system default program for 
     /// 
@@ -452,17 +459,17 @@ pub mod cve {
     /// 
     /// vulnerebilities
     /// 
-    /// # Arguments
+    /// ## Arguments
     /// 
     /// * cmd start with nvd_cve and try with --help
     /// 
-    /// # Returns
+    /// ## Returns
     /// 
     /// - Nothing
     /// 
     /// * writes to files in `.nutek/cve` directory
     /// 
-    /// # Examples
+    /// ## Examples
     /// 
     /// 
     /// sync with remote CVE database
@@ -558,5 +565,128 @@ pub mod cve {
         stop_nutek_core(docker.clone(), nutek_id).await;
         remove_nutek_core(docker.clone(), nutek_id).await;
         Ok(())
+    }
+}
+
+pub mod search {
+    use std::{vec, fs::{File}, time::{SystemTime, self}, io::{Write, Error}};
+
+    use reqwest;
+    use soup::prelude::*;
+
+    /// # Bing Search
+    ///
+    /// ## Arguments
+    /// 
+    /// - arg1 - query
+    /// - arg2 - max results
+    /// - arg3 - cvid
+    /// 
+    /// https://support.microsoft.com/en-gb/topic/advanced-search-keywords-ea595928-5d63-4a0b-9c6b-0b769865e78a
+    /// https://support.microsoft.com/en-gb/topic/advanced-search-options-b92e25f1-0085-4271-bdf9-14aaea720930
+    /// 
+    /// ## Examples
+    /// 
+    /// ```
+    /// async fn search() {
+    ///     let _ = nutek_lib::search::bing_search("lulzsec".to_string(), 30, 
+    ///         "".to_string()).await.expect("no boss");
+    /// }
+    /// ```
+    pub async fn bing_search(query: String, max_results: i32, cvid_in: String) -> Result<String, Error> {
+        let cvid: String;
+        if cvid_in == "".to_string() {
+            cvid = String::from("4D2EA03FB1D5439C994D1F5C7D902272");
+        } else {
+            cvid = cvid_in.clone();
+        }
+
+        let mut full_search: Vec<String> = vec![];
+        let mut query_num = 1;
+        loop {
+            let test = query_num - 1;
+            if test > max_results {
+                break
+            }
+            let user_agent = "{'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}";
+            let client = reqwest::Client::builder()
+                .user_agent(user_agent)
+                .build();
+            let query = format!("https://www.bing.com/search?q={}&qs=n&form=QBRE&sp=-1&sc=8-9&sk=&cvid={}&setlang=en&first={}", query, cvid, query_num);
+            let c = client.expect("Internal error, cal 911!");
+            let resp = c.get(query).send().await.unwrap().text().await;
+            let soup = Soup::new(resp.unwrap().as_str());
+            let ol_opt = soup.tag("ol").find();
+            let ol = ol_opt.expect("No results returned!");
+            let li = ol.tag("li").find_all();
+            let mut tmp_s_v: Vec<String> = vec![];
+            li.for_each(|l| {
+                let children = l.children();
+                for (_, child) in children.enumerate() {
+                    let h2 = child.tag("h2").find_all();
+                    for (_, h) in h2.enumerate() {
+                        let ha = h.tag("a").find();
+                        match ha {
+                            Some(ha) => {
+                                let href = ha.get("href");
+                                match href {
+                                    Some(href) => {
+                                        if href.get(0..4) != Some(&"http".to_string()) {
+                                            continue;
+                                        }
+                                        if href.get(0..28) == Some(&"https://www.bing.com/aclick?".to_string()) {
+                                            continue;
+                                        }
+
+                                        let mut tmp_s_h = format!("{} - {}\n", href, h.text());
+                                        let div_out = child.tag("div").find_all();
+                                        let mut tmp_s_p: String = String::from("");
+                                        let mut last_p: String = String::from("");
+                                        for (_, div) in div_out.enumerate() {
+                                            let p = div.tag("p").find();
+                                            match p {
+                                                Some(p) => {
+                                                    let p_t = p.text();
+                                                    if last_p == p_t {
+                                                        continue
+                                                    }
+                                                    last_p = p.text();
+                                                    tmp_s_p = format!("{}\n{}\n", tmp_s_p, p_t)
+                                                }
+                                                _ => {}
+                                            }
+                                        }
+                                        tmp_s_h = format!("{}{}\n", tmp_s_h, tmp_s_p);
+                                        let mut tmp: Vec<String> = vec![tmp_s_h];
+                                        tmp_s_v.append(&mut tmp);
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            });
+            tmp_s_v.dedup();
+            full_search.append(&mut tmp_s_v);
+            for s in tmp_s_v.iter() {
+                println!("{}", s);
+            }
+            query_num += 10;
+        }
+        let suffix: u128 = match SystemTime::now().duration_since(time::UNIX_EPOCH) {
+            Ok(n) => {
+                n.as_micros()
+            },
+            Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+        };
+        let mut f = File::create(format!("{}/.nutek/search/bing_{}.txt",
+            home::home_dir().unwrap().display(), suffix))
+            .expect("unable to create Bing file");                                                                                                          
+        for i in &full_search{                                                                                                                                                                  
+            f.write_all(i.as_bytes()).expect("unable to write Bing data");                                                                                                                            
+        }
+        return Ok(format!("{}", suffix));
     }
 }

@@ -21,6 +21,8 @@ mod core_tests {
         assert!(cve);
         let cve_db: bool = Path::new(format!("{}/.nutek/cve/database", home::home_dir().unwrap().display()).as_str()).is_dir();
         assert!(cve_db);
+        let bing: bool = Path::new(format!("{}/.nutek/search", home::home_dir().unwrap().display()).as_str()).is_dir();
+        assert!(bing);
     }
 
     use std::process::Command;
@@ -54,9 +56,9 @@ mod network_tests {
         .await
         .expect("no rustscan result");
         let f = fs::read(
-            format!("{}/.nutek/network_scan/terminal_cmd_{}.txt",
+            format!("{}/.nutek/network_scan/rustscan_cmd_{}.txt",
             home::home_dir().unwrap().display(), suffix))
-            .expect("can't open terminal logs of rustscan");
+            .expect("can't open rustscan logs of rustscan");
         let txt = String::from_utf8_lossy(&f);
         txt.find("rustscan 2.1.0")
         .expect("rustscan version 2.1.0 not found");
@@ -150,5 +152,29 @@ mod cve_tests {
         create_dirs();
         let _ = nvd_cve("nvd_cve search --text 'remote ruby'".to_string())
             .await.expect("no exploits");
+    }
+}
+
+#[cfg(test)]
+mod search_tests {
+    use std::path::Path;
+
+    use crate::core_tests::hello_msg;
+    use crate::core_tests::create_dirs;
+    
+    use nutek_lib::search::bing_search;
+    #[tokio::test]
+    async fn search_on_bing() {
+        hello_msg();
+        create_dirs();
+        let suffix = bing_search("exploit".to_string(), 
+            30,
+            "".to_string())
+            .await.expect("no Bing in scope");
+        let bing_file: bool = Path::new(format!("{}/.nutek/search/bing_{}.txt", 
+            home::home_dir().unwrap().display(),
+            suffix).as_str())
+            .exists();
+        assert!(bing_file);
     }
 }
