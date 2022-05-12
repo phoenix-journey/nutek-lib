@@ -5,20 +5,81 @@ pub mod cves {
 
     use crate::docker::runners::{connect_to_docker_api, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
 
-    /// nvd_cve 0.1.0
+    /// # nvd_cve 0.1.0
+    /// 
     /// Travis Paul <Tr@visPaul.me>
     ///
-    /// USAGE:
-    ///     nvd_cve [SUBCOMMAND]
+    /// ## USAGE:
+    /// 
+    ///     `nvd_cve [SUBCOMMAND]`
     ///
-    /// FLAGS:
-    ///     -h, --help       Prints help information
-    ///     -V, --version    Prints version information
+    /// ## FLAGS:
+    /// 
+    /// `-h, --help`       Prints help information
+    /// `-V, --version`    Prints version information
     ///
-    /// SUBCOMMANDS:
-    ///     help      Prints this message or the help of the given subcommand(s)
-    ///     search    Search for a CVE by ID in the local cache
-    ///     sync      Sync CVE feeds to local database
+    /// ## SUBCOMMANDS:
+    /// 
+    ///  `help`      Prints this message or the help of the given subcommand(s)
+    ///
+    /// `search`    Search for a CVE by ID in the local cache
+    ///
+    /// `sync`      Sync CVE feeds to local database
+    /// 
+    /// # nvd_cve-sync 0.1.0
+    ///
+    ///  Sync CVE feeds to local database
+    ///
+    /// ## USAGE:
+    ///     `nvd_cve sync [FLAGS] [OPTIONS]`
+    ///
+    /// ## FLAGS:
+    /// `-f, --force`           Ignore existing Metafiles and force update all feeds
+    /// 
+    /// `-h, --help`            Prints help information
+    /// 
+    /// `-n, --no-progress`     Don't show progress bar when syncing feeds
+    /// 
+    /// `-s, --show-default`    Show default config values and exit
+    /// 
+    /// `-V, --version`         Prints version information
+    ///
+    /// `-v, --verbose`         Print verbose logs (Set level with RUST_LOG)
+    ///
+    /// ## OPTIONS:
+    /// 
+    /// `-d, --db <FILE>`       Path to SQLite database where CVE feed data will be stored
+    /// 
+    /// `-l, --feeds <LIST>`   Comma separated list of CVE feeds to fetch and sync, defaults to: all known feeds
+    /// 
+    /// `-u, --url <URL>`       URL to use for fetching feeds, defaults to: https://nvd.nist.gov/feeds/json/cve/1.1
+    /// 
+    /// other one https://www.harmless.systems/mirror/nvd/feeds/json/cve/1.1/ 
+    /// 
+    /// # nvd_cve-search 0.1.0
+    /// 
+    /// Search for a CVE by ID in the local cache
+    ///
+    /// ## USAGE:
+    ///     `nvd_cve search [FLAGS] [OPTIONS] [CVE]`
+    ///
+    /// ## FLAGS:
+    /// 
+    /// `-h, --help`      Prints help information
+    /// 
+    /// `-V, --version`    Prints version information
+    /// 
+    /// `-v, --verbose`    Print verbose logs (Set level with RUST_LOG)
+    ///
+    /// ##OPTIONS:
+    /// 
+    /// `-d, --db <FILE>`        Path to SQLite database where CVE feed data will be stored
+    /// 
+    /// `-t, --text <STRING>`    Search the CVE descriptions instead.
+    ///
+    /// ## ARGS:
+    /// 
+    /// `<CVE>`    CVE ID to retrieve
     pub async fn nvd_cve_help() -> Result<(), Error> {
         let docker = &connect_to_docker_api();
 
@@ -29,7 +90,7 @@ pub mod cves {
         start_nutek_core(docker.clone(), nutek_id).await;
         
         let options = ExecContainerOpts::builder()
-            .cmd(vec!["raccoon", "--help"])
+            .cmd(vec!["nvd_cve", "--help"])
             .attach_stdout(true)
             .attach_stderr(true)
             .working_dir("/root")

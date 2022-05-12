@@ -1,9 +1,8 @@
-/// # networking capabilities
+/// # network scanners
 /// 
-/// currently uses nmap & rustscan
-/// planned features are gobuster,
-/// raccoon, nmap-analyze and others
-/// like recon-ng, metasploit...
+/// ## Nmap
+/// 
+/// ## RustScan
 pub mod scanners {
     use std::path::Path;
     use std::time::{SystemTime};
@@ -13,16 +12,19 @@ pub mod scanners {
     use futures::{StreamExt};
     use std::io::Error;
 
-    /// rustscan 2.1.0
+    /// # rustscan 2.1.0
+    /// 
     /// Fast Port Scanner built in Rust. WARNING Do not use this program against sensitive infrastructure since the specified
     /// server may not be able to handle this many socket connections at once. - Discord https://discord.gg/GFrQsGy - GitHub
     /// [https://github.com/RustScan/RustScan](https://github.com/RustScan/RustScan)
     /// 
-    /// USAGE:
+    /// ## USAGE:
+    /// 
     ///     `rustscan [FLAGS] [OPTIONS] [-- <command>...]`
     /// 
-    /// FLAGS:
-    ///         `--accessible`    Accessible mode. Turns off features which negatively affect screen readers
+    /// ##FLAGS:
+    /// 
+    /// `--accessible`    Accessible mode. Turns off features which negatively affect screen readers
     ///     
     /// `-g, --greppable`     Greppable mode. Only output the ports. No Nmap. Useful for grep or outputting to a file
     ///     
@@ -34,7 +36,8 @@ pub mod scanners {
     /// 
     /// `-V, --version`       Prints version information
     /// 
-    /// OPTIONS:
+    /// ## OPTIONS:
+    /// 
     /// `-a, --addresses <addresses>...`    A list of comma separated CIDRs, IPs, or hosts to be scanned
     /// 
     /// `-b, --batch-size <batch-size>`     The batch size for port scanning, it increases or slows the speed of scanning.
@@ -59,7 +62,7 @@ pub mod scanners {
     /// 
     /// `-u, --ulimit <ulimit>`             Automatically ups the ULIMIT with the value you provided
     ///
-    /// ARGS:
+    /// ## ARGS:
     /// 
     /// `<command>...`    The Script arguments to run. To use the argument -A, end RustScan's args with '-- -A'. Example:
     ///                     'rustscan -T 1500 -a 127.0.0.1 -- -A -sC'. This command adds -Pn -vvv -p $PORTS automatically to
