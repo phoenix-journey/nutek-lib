@@ -42,8 +42,9 @@ mod core_tests {
 
 #[cfg(test)]
 mod network_tests {
+
     use std::fs;
-    use nutek_lib::network::rustscan;
+    use nutek_lib::network::scanners::rustscan;
     use crate::core_tests::hello_msg;
     use crate::core_tests::create_dirs;
 
@@ -64,7 +65,7 @@ mod network_tests {
         .expect("rustscan version 2.1.0 not found");
     }
 
-    use nutek_lib::network::nmap_xml_to_html;
+    use nutek_lib::network::scanners::nmap_xml_to_html;
     use std::time;
     use std::time::SystemTime;
     #[tokio::test]
@@ -104,7 +105,7 @@ mod network_tests {
         println!("{}", home);
     }
 
-    use nutek_lib::network::open_nmap_html_report;
+    use nutek_lib::network::scanners::open_nmap_html_report;
     #[tokio::test]
     #[ignore]
     async fn scan_me_open_report() {
