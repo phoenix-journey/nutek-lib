@@ -96,6 +96,37 @@ pub mod system {
     /// 
     /// ...inside nutek-core container
     /// 
+    /// ___
+    /// 
+    /// You can start with `which [program you seek]`
+    /// 
+    /// if it returns a path like `/bin/bash` you're good to go.
+    /// 
+    /// Maybe then `cargo --help` to see that you can code
+    /// 
+    /// in the most loved programming language, which is the cause
+    /// 
+    /// of this headless linux installation to be so heavy on
+    /// 
+    /// your hard drive resources.
+    /// 
+    /// If you want to feel free, and I hope you do, maybe try
+    /// 
+    /// running this Docker image with command:
+    /// 
+    /// `docker run -it neosb/nutek-core:latest` which will give
+    /// 
+    /// you an acess to inner parts and an interactive shell inside a
+    /// 
+    /// container. You can also completely go _berserker_ mode and
+    /// 
+    /// pull this image from `hub.docker.com` with `docker pull neosb/nutek-core:latest`
+    /// 
+    /// and make some crazy stuff like `-d -p` which is recommended as a
+    /// 
+    /// starting point in Docker Desktop. Don't worry. It's just a joke.
+    /// 
+    /// 
     /// ## Arguments:
     /// 
     /// * `cmd: String` - the _command_
@@ -113,7 +144,7 @@ pub mod system {
     /// async fn run() {
     ///     let suffix = nutek_lib::system::run_cmd(
     ///         "echo 'Hi Nutek!'".to_string()
-    ///     ).await.expect("Nutek no run :(");
+    ///         ).await.expect("Nutek no run :(");
     /// }
     /// ```
     pub async fn run_cmd(cmd: String) -> Result<String, Error> {
