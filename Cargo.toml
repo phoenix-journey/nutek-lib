@@ -13,7 +13,7 @@ repository = "https://github.com/phoenix-journey/nutek-lib"
 soup = "0.5.1"
 reqwest = { version = "0.11" }
 tokio = { version = "1.18.1", features = ["full"] }
-docker-api = "0.8.0"
+shiplift = "0.7.0"
 futures = "0.3.21"
 open = "2.1.2"
 home = "0.5.3"

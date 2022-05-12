@@ -1,9 +1,9 @@
 pub mod cves {
     use std::{io::Error, fs};
     use futures::{StreamExt};
-    use docker_api::{ExecContainerOpts, Exec};
+    use shiplift::{ExecContainerOptions, Exec};
 
-    use crate::docker::runners::{connect_to_docker_api, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
+    use crate::docker::runners::{connect_to_shiplift, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
 
     /// # nvd_cve 0.1.0
     /// 
@@ -83,7 +83,7 @@ pub mod cves {
     /// 
     /// `<CVE>`    CVE ID to retrieve
     pub async fn nvd_cve_help() -> Result<(), Error> {
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
 
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -91,11 +91,10 @@ pub mod cves {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(vec!["nvd_cve", "--help"])
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 
@@ -158,19 +157,20 @@ pub mod cves {
     pub async fn nvd_cve(cmd: String) -> Result<(), Error> {
 
         let command = cmd.split_ascii_whitespace();
-        let mut cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        let mut cmd: Vec<&str> = command.map(|x| x).collect();
         
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
 
-        let help_dash_dash = cmd.iter().position(|r| r == "--help");//.unwrap();
-        let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
+        let help_dash_dash = cmd.iter().position(|r| *r == "--help");//.unwrap();
+        let help_dash = cmd.iter().position(|r| *r == "-h");//.unwrap();
+        
         if help_dash == None && help_dash_dash == None {
-            cmd.append(&mut vec!["--db".to_string(), 
-                "/root/.nutek/cve/database/sync.db".to_string()]);
+            cmd.append(&mut vec!["--db", 
+                "/root/.nutek/cve/database/sync.db"]);
         }
-        let search_cmd = cmd.iter().position(|r| r == "search");
-        let text_dash_dash = cmd.iter().position(|r| r == "--text");//.unwrap();
-        let text_dash = cmd.iter().position(|r| r == "-t");//.unwrap();
+        let search_cmd = cmd.iter().position(|r| *r == "search");
+        let text_dash_dash = cmd.iter().position(|r| *r == "--text");//.unwrap();
+        let text_dash = cmd.iter().position(|r| *r == "-t");//.unwrap();
         let mut cve_one_filename = "".to_string();
         let mut cve_list_filename = "".to_string();
         if search_cmd != None && text_dash == None && text_dash_dash == None{
@@ -190,11 +190,10 @@ pub mod cves {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(cmd)
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 

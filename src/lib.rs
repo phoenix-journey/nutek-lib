@@ -34,11 +34,11 @@ Neosb @museyoucoulduse
 pub mod system {
     use std::{path::Path, fs, io::Error, time::{SystemTime, self}};
 
-    use docker_api::{ExecContainerOpts, Exec};
+    use shiplift::{ExecContainerOptions, Exec};
 
     use futures::{StreamExt};
 
-    use crate::docker::runners::{connect_to_docker_api, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
+    use crate::docker::runners::{connect_to_shiplift, create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core};
     /// create Nutek working directories
     /// for future use and storage in home directory
     /// 
@@ -118,9 +118,9 @@ pub mod system {
     /// ```
     pub async fn run_cmd(cmd: String) -> Result<String, Error> {
         let command = cmd.split_ascii_whitespace();
-        let cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        let cmd: Vec<&str> = command.map(|x| x).collect();
         let cmdlet = cmd.get(0).unwrap().to_owned();
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
         let suffix: u128 = match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
                 n.as_micros()
@@ -132,11 +132,10 @@ pub mod system {
             .await;
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(cmd)
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 

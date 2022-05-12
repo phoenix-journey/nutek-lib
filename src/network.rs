@@ -7,8 +7,8 @@ pub mod scanners {
     use std::path::Path;
     use std::time::{SystemTime};
     use std::{fs, time};
-    use docker_api::{Exec};
-    use docker_api::api::{ExecContainerOpts};
+    use shiplift::{Exec};
+    use shiplift::ExecContainerOptions;
     use futures::{StreamExt};
     use std::io::Error;
 
@@ -69,7 +69,7 @@ pub mod scanners {
     ///                     nmap. For things like --script '(safe and vuln)' enclose it in quotations marks \"'(safe and
     ///                     vuln)'\"")
     pub async fn rustscan_help() -> Result<(), Error> {
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
 
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -77,11 +77,10 @@ pub mod scanners {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(vec!["rustscan", "--help"])
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 
@@ -133,9 +132,9 @@ pub mod scanners {
     pub async fn rustscan(cmd: String) -> Result<String, Error> {
 
         let command = cmd.split_ascii_whitespace();
-        let mut cmd: Vec<String> = command.map(|x| x.to_string()).collect();
+        let mut cmd: Vec<&str> = command.map(|x| x).collect();
         
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
         
         let suffix: u128 = match SystemTime::now().duration_since(time::UNIX_EPOCH) {
             Ok(n) => {
@@ -143,11 +142,12 @@ pub mod scanners {
             },
             Err(_) => panic!("SystemTime before UNIX EPOCH!"),
         };
-        let help_dash_dash = cmd.iter().position(|r| r == "--help");//.unwrap();
-        let help_dash = cmd.iter().position(|r| r == "-h");//.unwrap();
+        let help_dash_dash = cmd.iter().position(|r| *r == "--help");//.unwrap();
+        let help_dash = cmd.iter().position(|r| *r == "-h");//.unwrap();
+        let s;
         if help_dash == None && help_dash_dash == None {
-            cmd.append(&mut vec!["-oX".to_string(), 
-                format!("/root/.nutek/network_scan/scan_result_{}.xml", suffix)]);
+            s = format!("/root/.nutek/network_scan/scan_result_{}.xml", suffix);
+            cmd.append(&mut vec!["-oX", s.as_str()]);
         }
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -155,11 +155,10 @@ pub mod scanners {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(cmd)
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 
@@ -191,7 +190,7 @@ pub mod scanners {
         io::{prelude::*, BufReader},
     };
 
-    use crate::docker::runners::{create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core, connect_to_docker_api};
+    use crate::docker::runners::{create_nutek_core, start_nutek_core, stop_nutek_core, remove_nutek_core, connect_to_shiplift};
     use crate::system::run_cmd;
     
     fn lines_from_file(filename: impl AsRef<Path>) -> Vec<String> {

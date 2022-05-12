@@ -1,9 +1,9 @@
 pub mod crawlers {
     use std::io::Error;
 
-    use docker_api::{ExecContainerOpts, Exec};
+    use shiplift::{ExecContainerOptions, Exec};
 
-    use crate::docker::runners::{connect_to_docker_api, create_nutek_core, start_nutek_core};
+    use crate::docker::runners::{connect_to_shiplift, create_nutek_core, start_nutek_core};
 
     use futures::{StreamExt};
 
@@ -80,7 +80,7 @@ pub mod crawlers {
     /// 
     /// `--help`                         Show this message and exit.
     pub async fn raccoon_help() -> Result<(), Error> {
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
 
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -88,11 +88,10 @@ pub mod crawlers {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(vec!["raccoon", "--help"])
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 
@@ -370,7 +369,7 @@ pub mod crawlers {
     /// Examples and demonstrations of all features
     ///         https://epi052.github.io/feroxbuster-docs/docs/examples/
     pub async fn feroxbuster_help() -> Result<(), Error> {
-        let docker = &connect_to_docker_api();
+        let docker = &connect_to_shiplift();
 
         let nutek_core_id = 
             create_nutek_core(docker.clone())
@@ -378,11 +377,10 @@ pub mod crawlers {
         let nutek_id = nutek_core_id.as_str();
         start_nutek_core(docker.clone(), nutek_id).await;
         
-        let options = ExecContainerOpts::builder()
+        let options = ExecContainerOptions::builder()
             .cmd(vec!["feroxbuster", "--help"])
             .attach_stdout(true)
             .attach_stderr(true)
-            .working_dir("/root")
             .build();
         let exec = Exec::create(
             docker, 

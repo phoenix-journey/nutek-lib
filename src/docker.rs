@@ -4,20 +4,20 @@
 /// 
 /// create, start, stop, remove
 pub mod runners {
-    use docker_api::{Docker, api::ContainerCreateOpts};
+    use shiplift::{Docker, ContainerOptions};
 
     #[cfg(unix)]
-    fn new_docker() -> docker_api::Result<Docker> {
+    fn new_docker() -> shiplift::Result<Docker> {
         Ok(Docker::unix("/var/run/docker.sock"))
     }
         
     #[cfg(not(unix))]
-    fn new_docker() -> docker_api::Result<Docker> {
+    fn new_docker() -> shiplift::Result<Docker> {
         Docker::new("http:\\localhost:2375")
     }
 
     /// connect to docker api 
-    pub fn connect_to_docker_api() -> Docker {
+    pub fn connect_to_shiplift() -> Docker {
         new_docker()
             .expect("no Docker!")
     }
@@ -30,17 +30,17 @@ pub mod runners {
         let name = format!("{}-{}", container_name_base, uuid::Uuid::new_v4());
         let core_img = "neosb/nutek-core:latest";
         let opts = 
-            ContainerCreateOpts::builder(core_img)
-            .name(name)
+            ContainerOptions::builder(core_img)
+            .name(&name)
             .attach_stdout(true)
             .attach_stderr(true)
             .attach_stdin(true)
-            .volumes([format!("{}/.nutek:/root/.nutek", home::home_dir().unwrap().display())])
+            .volumes(vec![format!("{}/.nutek:/root/.nutek", home::home_dir().unwrap().display()).as_str()])
             .build();
         let d = docker.containers()
             .create(&opts)
             .await
-            .expect("nutek-core not created").id().to_string();
+            .expect("nutek-core not created").id;
         d
     }
 
@@ -65,7 +65,7 @@ pub mod runners {
     /// clean-up #2
     pub async fn remove_nutek_core(docker: Docker, nutek_id: &str) {
         let _ = docker.containers().get(nutek_id)
-        .remove(&Default::default())
+        .remove(shiplift::RmContainerOptions::default())
         .await.expect("nutek-core not removed");
     }
 }
